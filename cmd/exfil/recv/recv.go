@@ -1,7 +1,6 @@
 package recv
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -36,6 +35,4 @@ func run(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("Error receiving data: %v", err)
 	}
-
-	fmt.Printf("Listening for exfiltrated data, saving to '%s'\n", outputFile)
 }
