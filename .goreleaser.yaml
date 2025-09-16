@@ -1,0 +1,41 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    binary: icmpx
+    main: ./main.go
+
+nfpms:
+  - id: packages
+    package_name: icmpx
+    vendor: loresuso
+    homepage: https://github.com/loresuso/icmpx
+    maintainer: loresuso
+    description: ICMP-based data exfiltration and reverse shell tool
+    license: MIT
+    formats:
+      - deb
+    bindir: /usr/bin
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+release:
+  github:
+    owner: loresuso
+    name: icmpx
