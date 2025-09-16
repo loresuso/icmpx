@@ -27,6 +27,15 @@ nfpms:
     formats:
       - deb
     bindir: /usr/bin
+    scripts:
+      postinstall: |
+        #!/bin/sh
+        # Add CAP_NET_RAW capability to the binary if setcap is available
+        if command -v setcap >/dev/null 2>&1; then
+          setcap cap_net_raw+ep /usr/bin/icmpx || echo "Warning: Failed to set capabilities. Run 'sudo setcap cap_net_raw+ep /usr/bin/icmpx' manually."
+        else
+          echo "Warning: setcap not found. Install libcap2-bin package and run 'sudo setcap cap_net_raw+ep /usr/bin/icmpx' to enable non-root usage."
+        fi
 
 changelog:
   sort: asc
