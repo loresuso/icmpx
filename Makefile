@@ -1,2 +1,2 @@
 all:
-	go build -o icmpx main.go
+	go build -o icmpx .
