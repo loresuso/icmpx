@@ -2,7 +2,10 @@ package recv
 
 import (
 	"fmt"
+	"log"
+	"os"
 
+	"github.com/loresuso/icmpx/pkg/exfil"
 	"github.com/spf13/cobra"
 )
 
@@ -23,6 +26,16 @@ func New() *cobra.Command {
 func run(cmd *cobra.Command, args []string) {
 	outputFile := args[0]
 
-	// TODO: Implement actual recv logic
+	file, err := os.Create(outputFile)
+	if err != nil {
+		log.Fatalf("Error creating output file: %v", err)
+	}
+	defer file.Close()
+
+	err = exfil.NewICMP().Receive(file)
+	if err != nil {
+		log.Fatalf("Error receiving data: %v", err)
+	}
+
 	fmt.Printf("Listening for exfiltrated data, saving to '%s'\n", outputFile)
 }

